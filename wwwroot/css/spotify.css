@@ -1,0 +1,96 @@
+:root {
+  --verde: #1db954;
+  --panel: #121212;
+  --hover: #2a2a2a;
+  --gris: #b3b3b3;
+}
+
+html, body, #app { height: 100%; margin: 0; }
+body { background: #000; color: #fff; font-family: 'Segoe UI', system-ui, sans-serif; }
+
+.app {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  grid-template-rows: 1fr 90px;
+  grid-template-areas: "side main" "player player";
+  gap: 8px; padding: 8px; height: 100vh; box-sizing: border-box;
+}
+
+/* ---------- Barra lateral ---------- */
+.sidebar { grid-area: side; background: var(--panel); border-radius: 8px; padding: 16px; overflow-y: auto; }
+.logo { font-size: 1.3rem; font-weight: 700; color: var(--verde); margin-bottom: 20px; }
+.nav-item { padding: 10px 4px; color: var(--gris); font-weight: 600; cursor: pointer; }
+.nav-item.activo, .nav-item:hover { color: #fff; }
+
+.biblioteca-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin: 24px 0 12px; color: var(--gris); font-weight: 600;
+}
+.btn-add {
+  cursor: pointer; width: 32px; height: 32px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 1.2rem;
+}
+.btn-add:hover { background: var(--hover); color: #fff; }
+
+.item-biblioteca { display: flex; gap: 12px; align-items: center; padding: 8px; border-radius: 6px; cursor: pointer; }
+.item-biblioteca:hover { background: var(--hover); }
+.item-biblioteca.sonando .titulo { color: var(--verde); }
+.caratula { width: 48px; height: 48px; background: #333; border-radius: 4px; display: grid; place-items: center; flex-shrink: 0; }
+.titulo { font-weight: 500; }
+.subtitulo { color: var(--gris); font-size: .85rem; }
+
+/* ---------- Contenido central ---------- */
+.contenido {
+  grid-area: main; border-radius: 8px; padding: 24px; overflow-y: auto;
+  background: linear-gradient(#1f3a2a, var(--panel) 320px);
+}
+.vacio { color: var(--gris); }
+.fila { display: flex; gap: 16px; align-items: center; padding: 10px 12px; border-radius: 6px; cursor: pointer; }
+.fila:hover { background: rgba(255,255,255,.1); }
+.fila.sonando .fila-titulo, .fila.sonando .num { color: var(--verde); }
+.num { width: 24px; text-align: right; color: var(--gris); }
+
+/* ---------- Barra del reproductor ---------- */
+.reproductor {
+  grid-area: player; display: grid; grid-template-columns: 1fr 2fr 1fr;
+  align-items: center; padding: 0 16px;
+}
+.ahora { display: flex; gap: 12px; align-items: center; }
+.controles { display: flex; justify-content: center; align-items: center; gap: 16px; }
+.ctrl { background: none; border: none; color: var(--gris); font-size: 1.4rem; cursor: pointer; }
+.ctrl:hover:not(:disabled) { color: #fff; }
+.ctrl:disabled { opacity: .3; cursor: default; }
+.ctrl.activo { color: var(--verde); }
+.ctrl.play {
+  background: #fff; color: #000; width: 40px; height: 40px; border-radius: 50%; font-size: 1.1rem;
+}
+
+/* Zona central del reproductor */
+.centro { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.barra { display: flex; align-items: center; gap: 8px; width: 100%; max-width: 600px; }
+.tiempo { color: var(--gris); font-size: .75rem; width: 40px; text-align: center; font-variant-numeric: tabular-nums; }
+.extra { display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
+
+/* Sliders con relleno */
+.slider {
+  -webkit-appearance: none; appearance: none;
+  flex: 1; height: 4px; border-radius: 2px; cursor: pointer; outline: none;
+  background: linear-gradient(to right, #fff var(--p, 0%), #4d4d4d var(--p, 0%));
+}
+.slider:hover { background: linear-gradient(to right, var(--verde) var(--p, 0%), #4d4d4d var(--p, 0%)); }
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%;
+  background: #fff; opacity: 0;
+}
+.slider:hover::-webkit-slider-thumb { opacity: 1; }
+.slider::-moz-range-thumb { width: 12px; height: 12px; border: none; border-radius: 50%; background: #fff; }
+.slider:disabled { opacity: .4; cursor: default; }
+.slider.vol { flex: none; width: 100px; }
+
+/* ---------- Móvil ---------- */
+@media (max-width: 700px) {
+  .app { grid-template-columns: 1fr; grid-template-areas: "main" "player"; }
+  .sidebar { display: none; }
+  .reproductor { grid-template-columns: 1fr; grid-template-rows: auto auto; height: auto; }
+  .ahora, .extra { display: none; }
+}
