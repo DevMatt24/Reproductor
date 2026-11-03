@@ -224,3 +224,9 @@ button { font-family: inherit; }
   .full .ctrl { font-size: 1.7rem; }
   .full .ctrl.play { width: 64px; height: 64px; font-size: 1.8rem; }
 }
+
+.quitar {
+  margin-left: auto; background: none; border: none; color: var(--gris);
+  font-size: 1rem; padding: 8px 10px; cursor: pointer; border-radius: 50%;
+}
+.quitar:hover { color: #fff; background: rgba(255,255,255,.12); }

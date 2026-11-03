@@ -211,14 +211,15 @@
 
     // ---------- Fragmentos reutilizables ----------
     private RenderFragment<Cancion> Fila => c => @<div class="fila @(c == actual ? "sonando" : "")" @onclick="() => ElegirCancion(c)">
-        <span class="num">@(c == actual && reproduciendo ? "▶" : c.Id.ToString())</span>
+        <span class="num">@(c == actual && reproduciendo ? "▶" : (canciones.IndexOf(c) + 1).ToString())</span>
         <div class="caratula chica" style="@EstiloCaratula(c)">🎵</div>
         <div class="textos">
             <div class="fila-titulo">@c.Titulo</div>
             <div class="subtitulo">Canción</div>
         </div>
+        <button class="quitar" title="Quitar de la biblioteca"
+                @onclick="() => Quitar(c)" @onclick:stopPropagation="true">✕</button>
     </div>;
-
     private RenderFragment Controles => @<div class="controles">
         <button class="ctrl @(aleatorio ? "activo" : "")" @onclick="AlternarAleatorio" title="Aleatorio">🔀</button>
         <button class="ctrl" @onclick="Anterior" disabled="@(actual is null)">⏮</button>
@@ -264,6 +265,11 @@
         {
             var m = await ObtenerModulo();
             soportaCarpetas = await m.InvokeAsync<bool>("soportaCarpetas");
+
+            var guardadas = await m.InvokeAsync<ArchivoInfo[]>("cargarBiblioteca");
+            foreach (var a in guardadas)
+                canciones.Add(new Cancion(a.Id, Path.GetFileNameWithoutExtension(a.Name)));
+
             StateHasChanged();
         }
     }
@@ -277,6 +283,21 @@
             await modulo.InvokeVoidAsync("init", yo);
         }
         return modulo;
+    }
+
+        private async Task Quitar(Cancion c)
+    {
+        var m = await ObtenerModulo();
+        if (c == actual)
+        {
+            await m.InvokeVoidAsync("pausar");
+            actual = null;
+            reproduciendo = false;
+            completa = false;
+            tiempo = duracion = 0;
+        }
+        await m.InvokeVoidAsync("eliminar", c.Id);
+        canciones.Remove(c);
     }
 
     // ---------- Importación ----------
@@ -356,19 +377,20 @@
 
         if (tiempo > 3) { await m.InvokeVoidAsync("buscar", 0); return; }
 
-        if (historial.Count > 0)
+        while (historial.Count > 0)
         {
-            await Reproducir(historial.Pop());
+            var previa = historial.Pop();
+            if (canciones.Contains(previa))
+            {
+                await Reproducir(previa);
+                return;
+            }
         }
-        else
-        {
-            var i = canciones.IndexOf(actual);
-            if (i > 0) await Reproducir(canciones[i - 1]);
-            else await m.InvokeVoidAsync("buscar", 0);
-        }
-    }
 
-    [JSInvokable]
+        var i = canciones.IndexOf(actual);
+        if (i > 0) await Reproducir(canciones[i - 1]);
+        else await m.InvokeVoidAsync("buscar", 0);
+    }
     public async Task AlTerminar()
     {
         await Siguiente(true);
