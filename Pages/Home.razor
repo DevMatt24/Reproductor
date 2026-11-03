@@ -10,10 +10,7 @@
 
         <div class="biblioteca-header">
             <span>📚 Tu biblioteca</span>
-            <label class="btn-add" title="Importar canciones">＋
-                <input type="file" accept="audio/*" multiple hidden
-                       @ref="inputArchivos" @onchange="Importar" />
-            </label>
+            <label class="btn-add" for="inputAudio" title="Importar canciones">＋</label>       
         </div>
 
         @foreach (var c in canciones)
@@ -30,6 +27,14 @@
 
     <main class="contenido">
         <h1>Tus canciones</h1>
+
+        <div class="acciones">
+            <label class="boton" for="inputAudio">＋ Elegir archivos</label>
+            @if (soportaCarpetas)
+            {
+                <button class="boton" @onclick="ImportarCarpeta">📁 Importar carpeta</button>
+            }
+        </div>
 
         @if (canciones.Count == 0)
         {
@@ -90,7 +95,28 @@
     </footer>
 </div>
 
+<input id="inputAudio" type="file" accept="audio/*" multiple hidden
+       @ref="inputArchivos" @onchange="Importar" />
 @code {
+    private bool soportaCarpetas;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var m = await ObtenerModulo();
+            soportaCarpetas = await m.InvokeAsync<bool>("soportaCarpetas");
+            StateHasChanged();
+        }
+    }
+
+    private async Task ImportarCarpeta()
+    {
+        var m = await ObtenerModulo();
+        var archivos = await m.InvokeAsync<ArchivoInfo[]>("importarCarpeta");
+        foreach (var a in archivos)
+            canciones.Add(new Cancion(a.Id, Path.GetFileNameWithoutExtension(a.Name)));
+    }
     public record ArchivoInfo(int Id, string Name);
     public record Cancion(int Id, string Titulo);
 

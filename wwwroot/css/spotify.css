@@ -87,10 +87,36 @@ body { background: #000; color: #fff; font-family: 'Segoe UI', system-ui, sans-s
 .slider:disabled { opacity: .4; cursor: default; }
 .slider.vol { flex: none; width: 100px; }
 
+.acciones { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 16px; }
+.boton {
+  background: #fff; color: #000; border: none; border-radius: 999px;
+  padding: 10px 18px; font-weight: 700; font-size: .9rem; cursor: pointer;
+}
+.boton:hover { transform: scale(1.03); }
+
 /* ---------- Móvil ---------- */
 @media (max-width: 700px) {
-  .app { grid-template-columns: 1fr; grid-template-areas: "main" "player"; }
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto;
+    grid-template-areas: "main" "player";
+    height: 100dvh; padding: 0; gap: 0;
+  }
   .sidebar { display: none; }
-  .reproductor { grid-template-columns: 1fr; grid-template-rows: auto auto; height: auto; }
-  .ahora, .extra { display: none; }
+
+  .contenido { border-radius: 0; padding: 16px; }
+  .contenido h1 { font-size: 1.5rem; margin-top: 0; }
+  .fila { min-height: 48px; padding: 8px; }
+
+  .reproductor {
+    grid-template-columns: 1fr; grid-template-rows: auto auto; gap: 6px;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    background: #181818;
+  }
+  .ahora { display: flex; }
+  .ahora .titulo { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .extra { display: none; }
+  .centro { width: 100%; }
+  .controles { gap: 14px; }
+  .ctrl { font-size: 1.5rem; padding: 6px; }
 }
