@@ -3,21 +3,25 @@
 @implements IAsyncDisposable
 
 <div class="app">
+    <input id="inputAudio" type="file" accept="audio/*" multiple hidden
+           @ref="inputArchivos" @onchange="Importar" />
+
+    @* ===== Barra lateral (escritorio) ===== *@
     <aside class="sidebar">
         <div class="logo">🎵 Reproductor</div>
-        <div class="nav-item activo">🏠 Inicio</div>
-        <div class="nav-item">🔍 Buscar</div>
+        <div class="nav-item @(vista == "inicio" ? "activo" : "")" @onclick='() => vista = "inicio"'>🏠 Inicio</div>
+        <div class="nav-item @(vista == "buscar" ? "activo" : "")" @onclick='() => vista = "buscar"'>🔍 Buscar</div>
 
         <div class="biblioteca-header">
             <span>📚 Tu biblioteca</span>
-            <label class="btn-add" for="inputAudio" title="Importar canciones">＋</label>       
+            <label class="btn-add" for="inputAudio" title="Importar canciones">＋</label>
         </div>
 
         @foreach (var c in canciones)
         {
             <div class="item-biblioteca @(c == actual ? "sonando" : "")" @onclick="() => ElegirCancion(c)">
-                <div class="caratula">🎵</div>
-                <div>
+                <div class="caratula" style="@EstiloCaratula(c)">🎵</div>
+                <div class="textos">
                     <div class="titulo">@c.Titulo</div>
                     <div class="subtitulo">Canción</div>
                 </div>
@@ -25,66 +29,122 @@
         }
     </aside>
 
+    @* ===== Contenido principal ===== *@
     <main class="contenido">
-        <h1>Tus canciones</h1>
+        <header class="cabecera">
+            <div class="avatar">D</div>
+            <div class="chips">
+                <button class="chip @(vista == "inicio" ? "on" : "")" @onclick='() => vista = "inicio"'>Todo</button>
+                <button class="chip @(vista == "biblioteca" ? "on" : "")" @onclick='() => vista = "biblioteca"'>Música</button>
+            </div>
+        </header>
 
-        <div class="acciones">
-            <label class="boton" for="inputAudio">＋ Elegir archivos</label>
-            @if (soportaCarpetas)
-            {
-                <button class="boton" @onclick="ImportarCarpeta">📁 Importar carpeta</button>
-            }
-        </div>
-
-        @if (canciones.Count == 0)
+        @if (vista == "buscar")
         {
-            <p class="vacio">Pulsa el botón ＋ de la biblioteca para importar canciones de tu dispositivo.</p>
+            <h1>Buscar</h1>
+            <div class="buscador">
+                <span>🔍</span>
+                <input type="text" placeholder="¿Qué quieres escuchar?"
+                       @bind="busqueda" @bind:event="oninput" />
+            </div>
+
+            @if (canciones.Count == 0)
+            {
+                <p class="vacio">Aún no tienes canciones. Impórtalas desde Inicio o Tu biblioteca.</p>
+            }
+            else if (!Filtradas.Any())
+            {
+                <p class="vacio">No encontramos resultados para "@busqueda".</p>
+            }
+            else
+            {
+                <div class="lista">
+                    @foreach (var c in Filtradas) { @Fila(c) }
+                </div>
+            }
         }
         else
         {
-            <div class="lista">
-                @foreach (var c in canciones)
+            <h1>@(vista == "biblioteca" ? "Tu biblioteca" : "Tu música")</h1>
+
+            <div class="acciones">
+                <label class="boton" for="inputAudio">＋ Elegir archivos</label>
+                @if (soportaCarpetas)
                 {
-                    <div class="fila @(c == actual ? "sonando" : "")" @onclick="() => ElegirCancion(c)">
-                        <span class="num">@(c == actual && reproduciendo ? "▶" : c.Id.ToString())</span>
-                        <span class="fila-titulo">@c.Titulo</span>
-                    </div>
+                    <button class="boton" @onclick="ImportarCarpeta">📁 Importar carpeta</button>
                 }
             </div>
+
+            @if (canciones.Count == 0)
+            {
+                <div class="vacio-grande">
+                    <div class="vacio-icono">🎧</div>
+                    <h2>Tu biblioteca está vacía</h2>
+                    <p>Importa canciones de tu dispositivo para empezar a escuchar.</p>
+                </div>
+            }
+            else
+            {
+                @if (vista == "inicio")
+                {
+                    <div class="tarjetas">
+                        @foreach (var c in canciones.Take(6))
+                        {
+                            <div class="tarjeta @(c == actual ? "sonando" : "")" @onclick="() => ElegirCancion(c)">
+                                <div class="caratula" style="@EstiloCaratula(c)">🎵</div>
+                                <span class="tarjeta-titulo">@c.Titulo</span>
+                            </div>
+                        }
+                    </div>
+                    <h2>Todas tus canciones</h2>
+                }
+
+                <div class="lista">
+                    @foreach (var c in canciones) { @Fila(c) }
+                </div>
+            }
         }
     </main>
 
+    @* ===== Mini reproductor (móvil) ===== *@
+    @if (actual is not null)
+    {
+        <div class="mini" style="@EstiloFondo(actual)" @onclick="() => completa = true">
+            <div class="caratula" style="@EstiloCaratula(actual)">🎵</div>
+            <div class="mini-titulo">@actual.Titulo</div>
+            <button class="mini-btn" @onclick="AlternarPausa" @onclick:stopPropagation="true">
+                @(reproduciendo ? "⏸" : "▶")
+            </button>
+            <div class="mini-progreso" style="width:@(Porcentaje(tiempo, duracion))%"></div>
+        </div>
+    }
+
+    @* ===== Barra inferior (móvil) ===== *@
+    <nav class="bottomnav">
+        <button class="@(vista == "inicio" ? "on" : "")" @onclick='() => vista = "inicio"'>
+            <span>🏠</span>Inicio
+        </button>
+        <button class="@(vista == "buscar" ? "on" : "")" @onclick='() => vista = "buscar"'>
+            <span>🔍</span>Buscar
+        </button>
+        <button class="@(vista == "biblioteca" ? "on" : "")" @onclick='() => vista = "biblioteca"'>
+            <span>📚</span>Tu biblioteca
+        </button>
+    </nav>
+
+    @* ===== Reproductor (escritorio) ===== *@
     <footer class="reproductor">
         <div class="ahora">
             @if (actual is not null)
             {
-                <div class="caratula">🎵</div>
+                <div class="caratula" style="@EstiloCaratula(actual)">🎵</div>
                 <div class="titulo">@actual.Titulo</div>
             }
         </div>
 
         <div class="centro">
-            <div class="controles">
-                <button class="ctrl @(aleatorio ? "activo" : "")" @onclick="AlternarAleatorio" title="Aleatorio">🔀</button>
-                <button class="ctrl" @onclick="Anterior" disabled="@(actual is null)">⏮</button>
-                <button class="ctrl play" @onclick="AlternarPausa" disabled="@(actual is null)">
-                    @(reproduciendo ? "⏸" : "▶")
-                </button>
-                <button class="ctrl" @onclick="() => Siguiente(false)" disabled="@(actual is null)">⏭</button>
-                <button class="ctrl @(repetir != 0 ? "activo" : "")" @onclick="CambiarRepetir" title="Repetir">
-                    @(repetir == 2 ? "🔂" : "🔁")
-                </button>
-            </div>
-
-            <div class="barra">
-                <span class="tiempo">@Formato(arrastrando ? valorArrastre : tiempo)</span>
-                <input type="range" class="slider" min="0" max="@duracion.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)"
-                       step="0.1" style="--p:@Porcentaje(arrastrando ? valorArrastre : tiempo, duracion)%"
-                       value="@((arrastrando ? valorArrastre : tiempo).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))"
-                       disabled="@(actual is null)"
-                       @oninput="AlArrastrar" @onchange="AlSoltar" />
-                <span class="tiempo">@Formato(duracion)</span>
-            </div>
+            @Controles
+            @BarraProgreso
         </div>
 
         <div class="extra">
@@ -93,13 +153,111 @@
                    style="--p:@volumen%" @oninput="CambiarVolumen" />
         </div>
     </footer>
+
+    @* ===== Pantalla "Reproduciendo" ===== *@
+    @if (completa && actual is not null)
+    {
+        <div class="full" style="@EstiloFondoCompleto(actual)">
+            <div class="full-top">
+                <button class="ctrl" @onclick="() => completa = false">⌄</button>
+                <span>Reproduciendo</span>
+                <span class="full-espacio"></span>
+            </div>
+
+            <div class="full-caratula" style="@EstiloCaratula(actual)">🎵</div>
+
+            <div class="full-info">
+                <div class="full-titulo">@actual.Titulo</div>
+                <div class="subtitulo">Canción</div>
+            </div>
+
+            @BarraProgreso
+            @Controles
+        </div>
+    }
 </div>
 
-<input id="inputAudio" type="file" accept="audio/*" multiple hidden
-       @ref="inputArchivos" @onchange="Importar" />
 @code {
+    public record ArchivoInfo(int Id, string Name);
+    public record Cancion(int Id, string Titulo);
+
+    private ElementReference inputArchivos;
+    private IJSObjectReference? modulo;
+    private DotNetObjectReference<Home>? yo;
+    private readonly List<Cancion> canciones = new();
+    private readonly Stack<Cancion> historial = new();
+    private readonly Random azar = new();
+
+    private Cancion? actual;
+    private bool reproduciendo;
     private bool soportaCarpetas;
 
+    private string vista = "inicio";   // inicio | buscar | biblioteca
+    private string busqueda = "";
+    private bool completa;
+
+    private double tiempo, duracion;
+    private bool arrastrando;
+    private double valorArrastre;
+
+    private int volumen = 100;
+    private bool aleatorio;
+    private int repetir;   // 0 = no, 1 = lista, 2 = una
+
+    private IEnumerable<Cancion> Filtradas =>
+        string.IsNullOrWhiteSpace(busqueda)
+            ? canciones
+            : canciones.Where(c => c.Titulo.Contains(busqueda, StringComparison.OrdinalIgnoreCase));
+
+    // ---------- Fragmentos reutilizables ----------
+    private RenderFragment<Cancion> Fila => c => @<div class="fila @(c == actual ? "sonando" : "")" @onclick="() => ElegirCancion(c)">
+        <span class="num">@(c == actual && reproduciendo ? "▶" : c.Id.ToString())</span>
+        <div class="caratula chica" style="@EstiloCaratula(c)">🎵</div>
+        <div class="textos">
+            <div class="fila-titulo">@c.Titulo</div>
+            <div class="subtitulo">Canción</div>
+        </div>
+    </div>;
+
+    private RenderFragment Controles => @<div class="controles">
+        <button class="ctrl @(aleatorio ? "activo" : "")" @onclick="AlternarAleatorio" title="Aleatorio">🔀</button>
+        <button class="ctrl" @onclick="Anterior" disabled="@(actual is null)">⏮</button>
+        <button class="ctrl play" @onclick="AlternarPausa" disabled="@(actual is null)">
+            @(reproduciendo ? "⏸" : "▶")
+        </button>
+        <button class="ctrl" @onclick="() => Siguiente(false)" disabled="@(actual is null)">⏭</button>
+        <button class="ctrl @(repetir != 0 ? "activo" : "")" @onclick="CambiarRepetir" title="Repetir">
+            @(repetir == 2 ? "🔂" : "🔁")
+        </button>
+    </div>;
+
+    private RenderFragment BarraProgreso => @<div class="barra">
+        <span class="tiempo">@Formato(arrastrando ? valorArrastre : tiempo)</span>
+        <input type="range" class="slider" min="0"
+               max="@duracion.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)"
+               step="0.1"
+               style="--p:@Porcentaje(arrastrando ? valorArrastre : tiempo, duracion)%"
+               value="@((arrastrando ? valorArrastre : tiempo).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))"
+               disabled="@(actual is null)"
+               @oninput="AlArrastrar" @onchange="AlSoltar" />
+        <span class="tiempo">@Formato(duracion)</span>
+    </div>;
+
+    // ---------- Colores de carátula (según el título) ----------
+    private static int Tono(Cancion c)
+    {
+        int h = 0;
+        foreach (var ch in c.Titulo) h = (h * 31 + ch) % 360;
+        return h;
+    }
+    private static string EstiloCaratula(Cancion c) =>
+        $"background:linear-gradient(135deg,hsl({Tono(c)},55%,45%),hsl({(Tono(c) + 40) % 360},60%,25%))";
+    private static string EstiloFondo(Cancion c) =>
+        $"background:hsl({Tono(c)},35%,22%)";
+    private static string EstiloFondoCompleto(Cancion c) =>
+        $"background:linear-gradient(hsl({Tono(c)},45%,32%),#121212 75%)";
+
+    // ---------- Ciclo de vida ----------
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -109,34 +267,6 @@
             StateHasChanged();
         }
     }
-
-    private async Task ImportarCarpeta()
-    {
-        var m = await ObtenerModulo();
-        var archivos = await m.InvokeAsync<ArchivoInfo[]>("importarCarpeta");
-        foreach (var a in archivos)
-            canciones.Add(new Cancion(a.Id, Path.GetFileNameWithoutExtension(a.Name)));
-    }
-    public record ArchivoInfo(int Id, string Name);
-    public record Cancion(int Id, string Titulo);
-
-    private ElementReference inputArchivos;
-    private IJSObjectReference? modulo;
-    private DotNetObjectReference<Home>? yo;
-    private readonly List<Cancion> canciones = new();
-    private readonly Stack<Cancion> historial = new();   // para "Anterior" en modo aleatorio
-    private readonly Random azar = new();
-
-    private Cancion? actual;
-    private bool reproduciendo;
-
-    private double tiempo, duracion;
-    private bool arrastrando;
-    private double valorArrastre;
-
-    private int volumen = 100;
-    private bool aleatorio;
-    private int repetir;   // 0 = no, 1 = toda la lista, 2 = una canción
 
     private async Task<IJSObjectReference> ObtenerModulo()
     {
@@ -149,6 +279,7 @@
         return modulo;
     }
 
+    // ---------- Importación ----------
     private async Task Importar()
     {
         var m = await ObtenerModulo();
@@ -157,7 +288,15 @@
             canciones.Add(new Cancion(a.Id, Path.GetFileNameWithoutExtension(a.Name)));
     }
 
-    // Clic del usuario sobre una canción
+    private async Task ImportarCarpeta()
+    {
+        var m = await ObtenerModulo();
+        var archivos = await m.InvokeAsync<ArchivoInfo[]>("importarCarpeta");
+        foreach (var a in archivos)
+            canciones.Add(new Cancion(a.Id, Path.GetFileNameWithoutExtension(a.Name)));
+    }
+
+    // ---------- Reproducción ----------
     private async Task ElegirCancion(Cancion c)
     {
         if (actual is not null && actual != c) historial.Push(actual);
@@ -202,7 +341,6 @@
 
         if (proxima is null)
         {
-            // Fin de la lista sin repetir
             if (automatico) reproduciendo = false;
             return;
         }
@@ -216,7 +354,6 @@
         if (actual is null) return;
         var m = await ObtenerModulo();
 
-        // Si ya avanzó más de 3 segundos, reinicia la canción (como Spotify)
         if (tiempo > 3) { await m.InvokeVoidAsync("buscar", 0); return; }
 
         if (historial.Count > 0)
@@ -246,7 +383,6 @@
         StateHasChanged();
     }
 
-    // Barra de progreso: mientras arrastras solo mostramos el valor; al soltar, buscamos
     private void AlArrastrar(ChangeEventArgs e)
     {
         arrastrando = true;
@@ -277,6 +413,7 @@
         await m.InvokeVoidAsync("setBucle", repetir == 2);
     }
 
+    // ---------- Utilidades ----------
     private static double ParsearDouble(object? valor) =>
         double.TryParse(valor?.ToString(), System.Globalization.NumberStyles.Float,
                         System.Globalization.CultureInfo.InvariantCulture, out var r) ? r : 0;
